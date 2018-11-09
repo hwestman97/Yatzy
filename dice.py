@@ -1,7 +1,20 @@
-"""hej"""
+"""
+YATZY!!!!!!!!!!
+"""
 
 from random import randint
 from time import sleep
+
+class Player():
+    
+    def __init__(self, name):
+        self.name = name
+        
+    def points(self):
+        pass
+    
+    def rolls_left(self):
+        pass
 
 def roll_dice():
     '''
