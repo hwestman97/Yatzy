@@ -7,15 +7,22 @@ from time import sleep
 
 class Player():
     '''
-    Skapar ett objekt, spelar, som håller koll på poäng och spelkortet.
+    Skapar ett objekt, spelare, som håller koll på poäng och spelkortet.
     '''
-    points = 0
-    
     def __init__(self, name):
         self.name = name
+        self.points = 0
+        self.first_section_options = {'ettor':True,'tvåor':True,'treor':True,'fyror':True,'femmor':True,'sexor':True}
         
-    def add_points(self, new_points):
-        Player.points += new_points
+    def add_points(self, new_points, player):
+        player.points += new_points
+        
+    def show_options(self, player):
+        list_of_options = []
+        for key in player.first_section_options:
+            if player.first_section_options[key] == True:
+                list_of_options.append(key)
+        return list_of_options
 
 class ScoreBoard():
     '''
@@ -44,21 +51,21 @@ class ScoreBoard():
                 combos.update({'Yatzy':50})
         if dictionary == small_ladder:
             print('Du fick en liten stege!')
-            combos.update({'small ladder':15})
+            combos.update({'liten stege':15})
         elif dictionary == big_ladder:
             print('Du fick en stor stege!')
-            combos.update({'big ladder':20})
+            combos.update({'stor stege':20})
         return combos
 
-def roll_dice():
+def roll_die():
     '''
     Den här funktionen slår en tärning och returnerar tärningskastets värde.
     '''
-    dice_roll = randint(1, 6)
+    die_roll = randint(1, 6)
     #print ('Kastar tärningen...')
     #sleep(1)
-    #print ('Det blev en %d' % dice_roll)
-    return dice_roll
+    #print ('Det blev en %d' % die_roll)
+    return die_roll
 
 def roll(n):
     '''
@@ -66,8 +73,9 @@ def roll(n):
     '''
     dice_rolls = []
     for x in range(n):
-        dice_roll = roll_dice()
-        dice_rolls.append(dice_roll)
+        die_roll = roll_die()
+        dice_rolls.append(die_roll)
+    dice_rolls.sort()
     print('Resultatet av tärningskastet blev: ' + " ".join([str(x) for x in dice_rolls]))
     return dice_rolls
 
@@ -108,24 +116,38 @@ def turn(player):
         dice_rolls = roll(rolls)
         rolls, saved_dice = save_dice(dice_rolls, saved_dice, rolls_left)
         rolls_left -= 1 
+    saved_dice.sort()
     print('\nDina tärningar den här omgången: ' + " ".join([str(x) for x in (saved_dice)]))
     return saved_dice
 
-def score(dice, player, scoreboard):
-    '''
-    Ska kalla på alla funktioner som behövs för att beräkna poängen för en tur.
-    '''
-    number_of_each_dice = {}
-    for n in range(1,7):
-        number_of_each_dice[n] = count_dice(dice, n)
-    which_combo(number_of_each_dice, player, scoreboard)
+def which_combo(scoring_options, player):
+    if len(scoring_options) > 0:
+        print('\nDina valmöjligheter är:')
+        for key in scoring_options:
+            print(key, '\t', str(scoring_options[key]) + ' poäng')
+        user_choice = input('Vad vill du lägga dina tärningar som? ')
+        for key in scoring_options:
+            if user_choice == key:
+                player.add_points(scoring_options[key], player)
+                player.first_section_options[key] = False
+    else: 
+        print('Du måste stryka något')
+        for key in player.first_section_options:
+            if player.first_section_options[key] == True:
+                print(key)
+        user_choice = input('Vad vill du stryka? ')
+        for key in player.first_section_options:
+            if user_choice == key:
+                player.first_section_options[key] = False
 
-def which_combo(dice_dict, player, scoreboard):
-    combos = {}
+def open_combos(dice_dict, player, scoreboard):
+    open_first_combos = {}
     first_combos = scoreboard.first_section(dice_dict)
-    second_combos = scoreboard.second_section(dice_dict)
-    combos.update(first_combos)
-    print(combos)
+    for key in first_combos:
+        if player.first_section_options[key] == True:
+            open_first_combos.update({key:first_combos[key]})
+    return open_first_combos
+    #second_combos = scoreboard.second_section(dice_dict)
 
 def count_dice(dice, n):
     '''
@@ -137,14 +159,47 @@ def count_dice(dice, n):
             how_many += 1
     return how_many
 
+def score(dice, player, scoreboard):
+    '''
+    Ska kalla på alla funktioner som behövs för att beräkna poängen för en tur.
+    '''
+    number_of_each_dice = {}
+    for n in range(0,6):
+        number_of_each_dice[n] = count_dice(dice, n)
+    scoring_options = open_combos(number_of_each_dice, player, scoreboard)
+    which_combo(scoring_options, player)
+
+def play_first_round(player, scoreboard):
+    rolled_dice = turn(player) #rolled_dice = [1,1,1,1,1] #rolled_dice = [1,2,2,1,1]
+    score(rolled_dice, player, scoreboard)
+    print('%s total poäng: %s' % (player.name, player.points))
+
+def first_round(player1, player2, scoreboard1, scoreboard2):
+    #for x in range(0,3):
+    play_first_round(player1, scoreboard1)
+    play_first_round(player2, scoreboard2)
+    print(player1.first_section_options)
+    print(player2.first_section_options)
+    '''
+    lst1 = player1.show_options(player1)
+    lst2 = player2.show_options(player2)
+    print(len(lst1), len(lst2))
+    '''
+    if player1.points > player2.points:
+        print('%s vann!' % player1.name)
+    elif player1.points < player2.points:
+        print('%s vann!' % player2.name)
+    elif player1.points == player2.points:
+        print('Det blev lika')
+
 def main():
     '''
     Kallar bara på andra funktioner.
     '''
     player1 = Player('Kajsa')
     scoreboard1 = ScoreBoard(player1)
-    rolled_dice = turn(player1)
-    #rolled_dice = [1,1,1,1,1]
-    score(rolled_dice, player1, scoreboard1)
+    player2 = Player('Hanna')
+    scoreboard2 = ScoreBoard(player2)
+    first_round(player1, player2, scoreboard1, scoreboard2)
 
 main()
